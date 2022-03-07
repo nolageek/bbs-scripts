@@ -1,6 +1,6 @@
 load("http.js"); //this loads the http libraries which you will need to make requests to the web server
 load("sbbsdefs.js"); // i  always load this when making stuff for synchronet don't know why
-//var wmataApiKey = "exq6dtydgwdf3ys2ynyk5pmd"; // put your own API key here.
+//var wmataApiKey = "xxxxxxxxxxxxxxxxxxxxx"; // put your own API key here.
 var opts=load({},"modopts.js","wmata"); 
 var wmataApiKey = opts.wmataApiKey;
 
