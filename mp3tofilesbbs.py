@@ -16,6 +16,7 @@
 #                        Example: FILES.BBS
 #  -a ARTIST, --artist ARTIST
 #                        Example: Beyonce OR "Dead Meat Podcast"
+#                        This will replace artist for ALL FILES.
 #
 
 import id3reader
