@@ -1,0 +1,15 @@
+[0;44;30m [1;37mSLASH COMMANDS                          TWO-SLASH COMMANDS                    [0m
+
+[30m [1;37m/? [31mHelp [30m(This Menu) [0m[20C[1m//COVID   [31mCovid19 Stats
+[30m [37m/A [31mvatar Chooser[0m[24C[1m//WMATA   [31mWMATA Metro Times
+ [37m/C [31mMRC Chat[0m[29C[1m//CNN    [0m [1;31mCNN Headlines
+ [37m/D [31mDoors [30m(Old Style)[0m[20C[1m//SHUDDER[0m [1;31mComing soon to SHUDDER
+[0;30m [1;37m/N [31mNew Scan All[0m[25C[1m//RELOG   [31mRe-Run Logon Screens
+ [37m/O [31mLog Off Fast
+ [37m/X [31mToggle eXpert Mode
+[0m[39C[30m [44m [37mMULTI-BBS DOOR SERVERS                [0m
+
+[37C[1;31m  [0m  [1m//BBSLINK [31mBBS-Link
+[0m[37C[1;31m    [37m//DPARTY  [31mDoor Party
+[0m[39C[1;31m  [37m//BCR[5C[31mBCR Game Server
+[0m[39C[1;31m  [37m//EXODUS  [31mExodus Game Server

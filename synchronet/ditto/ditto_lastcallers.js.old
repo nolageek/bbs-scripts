@@ -1,0 +1,260 @@
+// Many thanks to tracker and ispyhumanfly for a lot of this code.
+load("sbbsdefs.js");
+load("ditto/ditto_settings.js");
+require("ditto/ditto_functions.js",'lpad');
+//require("funclib.js", 'printPadding');
+
+var lastcallerfile = "/sbbs/mods/ditto/lastcaller.msg";
+
+var width_name = 25;
+var width_location = 30;
+var width_shell = 8;
+var width_seen = 9;
+var width_on = 4;
+
+if(console.screen_columns < 100) {
+  width_name = width_name - 10;
+  width_location = width_location - 10;
+  width_shell = width_shell + 2;
+  width_seen = width_seen + 1;
+  width_on = width_on + 1;
+} else {
+  width_shell = width_shell + 4;
+  width_seen = width_seen + 3;
+  width_on = width_on + 2;
+}
+
+
+function lastCallers(num) {
+  if (!num) num = options.lastCallersNum;
+
+  //clear the counter...
+  //console.line_counter = 0;
+  //now begin the last few callers module...
+  var show_count = num - 1; //number of logins to show...
+  var u = new User(1); //user object...
+  var laston_list = new Array(); //array to hold recent users...
+
+  function UserLogin(user_number, user_laston) {
+    this.number = user_number;
+    this.logon = user_laston;
+  }
+
+  function sortByLogin(a, b) {
+    return a.logon - b.logon;
+  }
+
+  var lastuser;
+  if (system.lastuser == undefined) lastuser = system.stats.total_users;
+  else lastuser = system.lastuser;
+
+  for (var i = 1; i <= lastuser; i++) {
+    u.number = i; //change to current user
+    if (
+      u.stats.total_logons > 0 &&
+      u.compare_ars("NOT GUEST") &&
+      (u.settings & USER_DELETED) != USER_DELETED
+    )
+      laston_list[laston_list.length] = new UserLogin(i, u.stats.laston_date);
+  }
+
+  laston_list.sort(sortByLogin);
+
+  var start =
+    laston_list.length > show_count ? laston_list.length - 1 - show_count : 0;
+  var lastfile = new File(lastcallerfile);
+  bbs.menu(user.command_shell + "/header");
+  var widescreenheader = "";
+  if (console.screen_columns == 132)
+    widescreenheader = color.white + "   U   D   P    FIRST   "
+
+  var headerlist =
+  rpad("NAME",width_name+1) + rpad("LOCATION/AFILS",width_location+1) + rpad("SHELL",width_shell) + rpad("LAST.SEEN",width_seen) + rpad("ON",width_on) + bracket("nprftdeh") +  widescreenheader + "  CON";
+  console.center(color.white + headerlist + "\1n");
+  lastfile.open('w');
+  lastfile.writeln(dittoLeetColor(headerlist));
+  //console.crlf();
+
+  //create a loop to display the last few callers...
+  for (var i = laston_list.length - 1; i > start; i--) {
+    u.number = laston_list[i].number; //assign to user in list...
+
+    var userprops = load({}, 'userprops.js');
+    var terminal = userprops.get('USER_LASTCALL', 'terminal', 'unknown', u.number);
+    switch(terminal) {
+      case "ANSI-256COLOR":
+        terminal_name = "Netrunner";
+        break;
+      case "syncterm":
+      case "XTERM":
+        terminal_namel = terminal;
+        break;
+      case "ansi-bbs": // fTelnet
+      default:
+        terminal_name = "Other"
+        break
+    }
+
+    var terminal_width = userprops.get('USER_LASTCALL', 'terminal_width', undefined, u.number);
+    var node = userprops.get('USER_LASTCALL', 'node', undefined, u.number);
+    var msgs_read = userprops.get('USER_LASTCALL', ' msgs_read', undefined, u.number);
+    var msgs_sent = userprops.get('USER_LASTCALL', 'msgs_sent', undefined, u.number);
+    var files_ul = userprops.get('USER_LASTCALL', 'files_ul', undefined, u.number);
+    var files_dl = userprops.get('USER_LASTCALL', 'files_dl', undefined, u.number);
+
+
+    //variable to display the connection type...
+    var connection = u.connection.toUpperCase().substring(0, 3);
+    //variable to create the date and time format...
+    var lastdate = strftime("%m/%d/%y ", u.stats.laston_date);
+    var firstdate = strftime("%m/%d/%y ", u.stats.firston_date);
+
+    var activit_posted = "-";
+    var activit_gfiles = "-";
+    var activit_feedback = "-";
+    var activit_readmg = "-";
+    var activit_hungup = "-";
+    var activit_doors = "-";
+    var activit_emails = "-";
+    var activit_isnew = "-";
+
+    if (lastdate == firstdate) activit_isnew = "\1h\1g\1In\1n\1w";
+    if (u.security.flags1 & UFLAG_P) activit_posted = "p";
+    if (u.security.flags1 & UFLAG_T) activit_gfiles = "t";
+    if (u.security.flags1 & UFLAG_F) activit_feedback = "f";
+    if (u.security.flags1 & UFLAG_R) activit_readmg = "r";
+    if (u.security.flags1 & UFLAG_H && u.alias != user.alias)
+      activit_hungup = "h";
+    if (u.security.flags1 & UFLAG_D) activit_doors = "d";
+    if (u.security.flags1 & UFLAG_E) activit_emails = "e";
+    var timelast = u.stats.timeon_last_logon + "m";
+    //how you want the information displayed via telnet...
+
+    var active =
+      color.bright +
+      ///rpad(u.alias.substring(0,width_name), width_name + 1) +
+      rpad(u.alias.substring(0,width_name), width_name + 1) +
+      color.normal +
+      rpad(u.location.substring(0,width_location), width_location + 1) +
+      color.bright +
+      rpad(u.command_shell, width_shell) +
+      color.dark +
+      rpad(timeSince(u.stats.laston_date), width_seen) +
+      color.normal +
+      rpad(u.stats.timeon_last_logon + "m", width_on) +
+      color.dark +
+       "[" +
+      activit_isnew +
+      color.normal +
+      activit_posted +
+      activit_readmg +
+      activit_feedback +
+      activit_gfiles +
+      activit_doors +
+      activit_emails +
+      activit_hungup +
+      color.dark +
+       "]  " +
+  
+      color.normal;
+
+    // If widescreen, lets show some more stats
+    var downloads = rpad(u.stats.files_downloaded.toString(), 4)
+    var uploads =  rpad(u.stats.files_uploaded.toString(), 4);
+    var posts =  rpad(u.stats.total_posts.toString(), 4);
+    var activewide = " " + downloads + uploads + posts + " " + firstdate + " ";
+
+    if (console.screen_columns == 132)
+    console.center(active + activewide + rpad(u.connection, 5) + "\r\n");
+    else
+      console.center(active + rpad(u.connection, 3) + "\r\n");
+  
+    lastfile.writeln(active + rpad(u.connection, 5));     
+
+
+      
+    //now create the desired output...
+    //console.center(active + "\r\n");
+
+
+  }
+  var footerlist = "newuser postmsg readmsg feedback tfiles doors email hangup";
+  var footerlistwide = " / Uploaded Downloaded Posted";
+  if (console.screen_columns == 132)
+    footerlist = footerlist + footerlistwide;
+  console.crlf();
+  console.center(dittoLeetColor(footerlist) + "\r\n");
+  //bbs.menu(user.command_shell + '/ftr-last10');
+  lastfile.writeln(dittoLeetColor(footerlist));
+  lastfile.close();
+  console.crlf(2);
+  console.pause();
+}
+
+function askLastCallers(int) {
+  var num = int;
+  console.crlf();
+  if (num == "undefined" || num == null) {
+    console.putmsg(
+      "\r\n" +
+        color.dark +
+        "> " +
+        color.normal +
+        "How many callers would you like to list? " +
+        color.dark +
+        options.lastCallersNum +
+        " Max." +
+        color.bright +
+        " [" +
+        options.lastCallersNum +
+        "]"
+    );
+    console.putmsg(color.bright + " : ");
+    num = console.getnum(console.screen_rows - 18, options.lastCallersNum);
+  }
+  lastCallers(num);
+}
+
+function timeSince(ts) {
+  now = new Date();
+  ts = new Date(ts * 1000);
+  var delta = now.getTime() - ts.getTime();
+
+  delta = delta / 1000; //us to s
+
+  var ps, pm, ph, pd, min, hou, sec, days;
+
+  if (delta <= 59) {
+    return delta + "s";
+  }
+
+  if (delta >= 60 && delta <= 3599) {
+    min = Math.floor(delta / 60);
+    sec = delta - min * 60;
+    return min + "m";
+  }
+
+  if (delta >= 3600 && delta <= 86399) {
+    hou = Math.floor(delta / 3600);
+    min = Math.floor((delta - hou * 3600) / 60);
+    return hou + "h " + min + "m";
+  }
+
+  if (delta >= 86400) {
+    days = Math.floor(delta / 86400);
+    hou = Math.floor((delta - days * 86400) / 60 / 60);
+    return days + "d " + hou + "h";
+  }
+}
+
+//pads right
+function rpad(str, length, padString) {
+  if (!padString) var padString = " ";
+  if (str.length > length) str = str.substring(0, length);
+  while (str.length < length) str = str + padString;
+
+  return str;
+}
+
+if (!argv[0]) askLastCallers();
+else askLastCallers(argv[0]);
